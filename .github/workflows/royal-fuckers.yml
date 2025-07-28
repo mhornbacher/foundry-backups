@@ -1,0 +1,75 @@
+name: RoyalFuckers.com
+
+on:
+  schedule:
+    - cron: '0 9 * * 1,4,6'  # Mon (1), Thu (4), Sat (6) at 09:00 UTC = 04:00 ET
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rclone unzip rsync zip
+
+    - name: Start Tailscale
+      uses: tailscale/github-action@v1
+      with:
+        authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+
+    - name: Write SSH key
+      run: |
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+        chmod 600 key.pem
+
+    - name: Pull Foundry data via rsync
+      run: |
+        mkdir -p royalfuckers-data
+        rsync -az -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+          radxa@rock-5b-plus:/home/radxa/containers/royalfuckers royalfuckers-data/
+
+    - name: Create ZIP archive
+      run: |
+        DATE=$(date +%Y-%m-%d)
+        ZIPNAME="$DATE-royalfuckers-backup.zip"
+        zip -r "$ZIPNAME" royalfuckers-data/
+        echo "ZIPNAME=$ZIPNAME" >> $GITHUB_ENV
+
+    - name: Configure rclone
+      run: |
+        mkdir -p ~/.config/rclone
+        echo "${{ secrets.RCLONE_CONFIG_B2 }}" > ~/.config/rclone/rclone.conf
+
+    - name: Upload backup to Backblaze B2
+      run: |
+        rclone copy "$ZIPNAME" b2:mh-foundry-backups/daily/
+
+    - name: Copy to monthly if no backup exists for this month
+      run: |
+        YEAR=$(date +%Y)
+        MONTH=$(date +%m)
+        PREFIX="$YEAR-$MONTH"
+
+        # Check if a backup for this month already exists
+        EXISTS=$(rclone lsf b2:mh-foundry-backups/monthly/ --format "t" | grep "^$PREFIX" || true)
+
+        if [ -z "$EXISTS" ]; then
+          echo "No monthly backup for $PREFIX, uploading..."
+          rclone copy "$ZIPNAME" b2:mh-foundry-backups/monthly/
+        else
+          echo "Monthly backup for $PREFIX already exists, skipping."
+        fi
+
+
+    - name: Prune daily (keep last 3)
+      run: |
+        rclone lsf b2:mh-foundry-backups/daily/ --format "t" --sort -name | \
+          tail -n +4 | xargs -I{} rclone delete b2:mh-foundry-backups/daily/{}
+
+    - name: Prune monthly (keep last 3)
+      run: |
+        rclone lsf b2:mh-foundry-backups/monthly/ --format "t" --sort -name | \
+          tail -n +4 | xargs -I{} rclone delete b2:mh-foundry-backups/monthly/{}
