@@ -28,7 +28,7 @@ jobs:
     - name: Pull Foundry data via rsync
       run: |
         mkdir -p royalfuckers-data
-        rsync -az -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+        rsync -azP -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
           radxa@rock-5b-plus:/home/radxa/containers/royalfuckers royalfuckers-data/
 
     - name: Create ZIP archive
