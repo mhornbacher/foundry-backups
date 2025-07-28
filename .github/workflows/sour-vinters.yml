@@ -25,11 +25,13 @@ jobs:
         echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
         chmod 600 key.pem
 
-    - name: Pull Foundry data via rsync
+    - name: Pull Foundry data via rsync (with sudo)
       run: |
         mkdir -p sourvinters-data
         rsync -azP -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
+          --rsync-path="sudo rsync" \
           radxa@rock-5b-plus:/home/radxa/containers/foundryvtt sourvinters-data/
+
 
     - name: Create ZIP archive
       run: |
