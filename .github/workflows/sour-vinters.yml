@@ -47,7 +47,7 @@ jobs:
 
     - name: Upload backup to Backblaze B2
       run: |
-        rclone copy "$ZIPNAME" b2:mh-foundry-backups/daily/
+        rclone copy "$ZIPNAME" b2:mh-foundry-backups/sourvinters/daily/
 
     - name: Copy to monthly if no backup exists for this month
       run: |
@@ -56,11 +56,11 @@ jobs:
         PREFIX="$YEAR-$MONTH"
 
         # Check if a backup for this month already exists
-        EXISTS=$(rclone lsf b2:mh-foundry-backups/monthly/ --format "t" | grep "^$PREFIX" || true)
+        EXISTS=$(rclone lsf b2:mh-foundry-backups/sourvinters/monthly/ --format "t" | grep "^$PREFIX" || true)
 
         if [ -z "$EXISTS" ]; then
           echo "No monthly backup for $PREFIX, uploading..."
-          rclone copy "$ZIPNAME" b2:mh-foundry-backups/monthly/
+          rclone copy "$ZIPNAME" b2:mh-foundry-backups/sourvinters/monthly/
         else
           echo "Monthly backup for $PREFIX already exists, skipping."
         fi
@@ -68,10 +68,10 @@ jobs:
 
     - name: Prune daily (keep last 3)
       run: |
-        rclone lsf b2:mh-foundry-backups/daily/ --format "t" --sort -name | \
-          tail -n +4 | xargs -I{} rclone delete b2:mh-foundry-backups/daily/{}
+        rclone lsf b2:mh-foundry-backups/sourvinters/daily/ --format "t" --sort -name | \
+          tail -n +4 | xargs -I{} rclone delete b2:mh-foundry-backups/sourvinters/daily/{}
 
     - name: Prune monthly (keep last 3)
       run: |
-        rclone lsf b2:mh-foundry-backups/monthly/ --format "t" --sort -name | \
-          tail -n +4 | xargs -I{} rclone delete b2:mh-foundry-backups/monthly/{}
+        rclone lsf b2:mh-foundry-backups/sourvinters/monthly/ --format "t" --sort -name | \
+          tail -n +4 | xargs -I{} rclone delete b2:mh-foundry-backups/sourvinters/monthly/{}
