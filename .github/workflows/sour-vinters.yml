@@ -1,8 +1,8 @@
-name: royalfuckers.com
+name: sourvinters.com
 
 on:
   schedule:
-    - cron: '0 9 * * 1,4,6'  # Mon (1), Thu (4), Sat (6) at 09:00 UTC = 04:00 ET
+    - cron: '0 7 * * 1,4,6'  # Mon (1), Thu (4), Sat (6) at 07:00 UTC = 02:00 ET
   workflow_dispatch:
 
 jobs:
@@ -27,15 +27,15 @@ jobs:
 
     - name: Pull Foundry data via rsync
       run: |
-        mkdir -p royalfuckers-data
+        mkdir -p sourvinters-data
         rsync -azP -e "ssh -i key.pem -o StrictHostKeyChecking=no" \
-          radxa@rock-5b-plus:/home/radxa/containers/royalfuckers royalfuckers-data/
+          radxa@rock-5b-plus:/home/radxa/containers/foundryvtt sourvinters-data/
 
     - name: Create ZIP archive
       run: |
         DATE=$(date +%Y-%m-%d)
-        ZIPNAME="$DATE-royalfuckers-backup.zip"
-        zip -r "$ZIPNAME" royalfuckers-data/
+        ZIPNAME="$DATE-sourvinters-backup.zip"
+        zip -r "$ZIPNAME" sourvinters-data/
         echo "ZIPNAME=$ZIPNAME" >> $GITHUB_ENV
 
     - name: Configure rclone
